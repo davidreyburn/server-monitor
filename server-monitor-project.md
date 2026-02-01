@@ -67,19 +67,19 @@ server-monitor/
 ## Features Checklist
 
 ### Core Features
-- [ ] Real-time system metrics display
-- [ ] Historical graphs (last 24 hours, 7 days, 30 days)
-- [ ] Disk health status with SMART data
-- [ ] Temperature monitoring with alerts
-- [ ] Storage usage by mount point
-- [ ] System load averages (1, 5, 15 min)
+- [x] Real-time system metrics display
+- [x] Historical graphs (last 24 hours, 7 days, 30 days)
+- [x] Disk health status with SMART data
+- [x] Temperature monitoring with alerts
+- [x] Storage usage by mount point
+- [x] System load averages (1, 5, 15 min)
 
 ### Nice-to-Have Features
 - [ ] Email/notification alerts for critical thresholds
 - [ ] Docker container status overview
 - [ ] Network bandwidth monitoring
-- [ ] Configurable refresh intervals
-- [ ] Dark/light theme toggle
+- [x] Configurable refresh intervals
+- [x] Dark theme (default)
 - [ ] Export data to CSV
 
 ---
@@ -98,7 +98,7 @@ server-monitor/
 1. Build Docker image on development machine or directly on server
 2. Create docker-compose.yml with volume mounts
 3. Deploy to server at 192.168.1.192
-4. Access dashboard at http://192.168.1.192:8080
+4. Access dashboard at http://192.168.1.192:8081
 5. Verify metrics collection is working
 6. Set up automated backups of metrics database
 
@@ -177,7 +177,7 @@ Please create the complete project structure, all code files, Docker configurati
 
 ## Post-Deployment Testing
 
-1. Verify web interface loads at http://192.168.1.192:8080
+1. Verify web interface loads at http://192.168.1.192:8081
 2. Confirm all metrics are being collected
 3. Check Docker container resource usage: `docker stats server-monitor`
 4. Verify database is growing appropriately
@@ -211,3 +211,32 @@ Please create the complete project structure, all code files, Docker configurati
 - Verify volume mounts in docker-compose.yml
 - Check file permissions on host
 - Review container logs: `docker logs server-monitor`
+
+---
+
+## Deployment Log
+
+### 2026-02-01 - Initial Deployment
+
+**Completed:**
+1. Created complete project structure with Python Flask backend and vanilla JS frontend
+2. Built Docker image with multi-stage Alpine Linux build
+3. Deployed to server at 192.168.1.192 via SCP/SSH (user: chives)
+4. Container running on port 8081 (8080 was already in use)
+
+**Dashboard URL:** http://192.168.1.192:8081
+
+**Verified Working:**
+| Metric | Status | Sample Value |
+|--------|--------|--------------|
+| CPU Temperature | Working | 48.0°C |
+| System Load | Working | 0.11, 0.16, 0.11 |
+| Memory Usage | Working | 9.7% of 15.7 GB |
+| Disk Usage | Working | 17% of 97.87 GB |
+| SMART Health | Working | sda, sdb - both healthy |
+
+**Notes:**
+- Had to add `coreutils` package to Alpine image for `df` command
+- Port changed from 8080 to 8081 due to conflict on server
+- Container configured with SYS_RAWIO capability for SMART access
+- Data collection running every 5 minutes

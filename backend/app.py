@@ -157,17 +157,15 @@ def start_scheduler():
     return scheduler
 
 
+# Initialize on module load (runs with gunicorn)
+init_database()
+collect_all_metrics()
+scheduler = start_scheduler()
+logger.info("Server monitor initialized")
+
+
 if __name__ == '__main__':
-    # Initialize database
-    init_database()
-
-    # Collect initial metrics
-    collect_all_metrics()
-
-    # Start scheduler
-    scheduler = start_scheduler()
-
-    # Run Flask app
+    # Run Flask development server
     app.run(
         host=Config.HOST,
         port=Config.PORT,

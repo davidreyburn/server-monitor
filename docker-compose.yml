@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  server-monitor:
+    build: .
+    container_name: server-monitor
+    restart: unless-stopped
+
+    ports:
+      - "8081:8080"
+
+    volumes:
+      # Persistent data storage
+      - ./data:/app/data
+
+      # Read-only access to host metrics
+      - /sys:/host/sys:ro
+      - /proc:/host/proc:ro
+
+      # Required for SMART monitoring (optional - remove if not needed)
+      - /dev:/dev:ro
+
+    environment:
+      # Data collection interval in seconds (default: 5 minutes)
+      - COLLECTION_INTERVAL=300
+
+      # Data retention in days
+      - RETENTION_DAYS=90
+
+      # Logging level (DEBUG, INFO, WARNING, ERROR)
+      - LOG_LEVEL=WARNING
+
+      # Alert thresholds
+      - TEMP_WARNING=70
+      - TEMP_CRITICAL=85
+      - DISK_WARNING=80
+      - DISK_CRITICAL=95
+      - MEMORY_WARNING=85
+      - MEMORY_CRITICAL=95
+
+    # Resource limits for minimal impact
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    # Required for SMART access - remove 'privileged' and use 'cap_add' if possible
+    # Option 1: Minimal privileges (preferred)
+    cap_add:
+      - SYS_RAWIO
+    devices:
+      - /dev/sda:/dev/sda
+      - /dev/sdb:/dev/sdb
+
+    # Option 2: Full privileged mode (use only if Option 1 doesn't work)
+    # privileged: true
+
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

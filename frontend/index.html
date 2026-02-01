@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Monitor</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Server Monitor</h1>
+        <div class="header-controls">
+            <span id="last-update">Last update: --</span>
+            <select id="time-range">
+                <option value="24">Last 24 Hours</option>
+                <option value="168">Last 7 Days</option>
+                <option value="720">Last 30 Days</option>
+            </select>
+            <button id="refresh-btn">Refresh</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="metrics-grid">
+            <!-- CPU Section -->
+            <div class="card">
+                <h2>CPU Temperature</h2>
+                <div class="metric-value" id="cpu-temp">--</div>
+                <div class="metric-label">Current Temperature</div>
+                <canvas id="temp-chart"></canvas>
+            </div>
+
+            <!-- Load Average -->
+            <div class="card">
+                <h2>System Load</h2>
+                <div class="load-values">
+                    <div class="load-item">
+                        <span class="load-value" id="load-1">--</span>
+                        <span class="load-label">1 min</span>
+                    </div>
+                    <div class="load-item">
+                        <span class="load-value" id="load-5">--</span>
+                        <span class="load-label">5 min</span>
+                    </div>
+                    <div class="load-item">
+                        <span class="load-value" id="load-15">--</span>
+                        <span class="load-label">15 min</span>
+                    </div>
+                </div>
+                <canvas id="load-chart"></canvas>
+            </div>
+
+            <!-- Memory -->
+            <div class="card">
+                <h2>Memory Usage</h2>
+                <div class="metric-value" id="memory-percent">--</div>
+                <div class="metric-label" id="memory-detail">-- / -- GB</div>
+                <canvas id="memory-chart"></canvas>
+            </div>
+
+            <!-- Disk Usage -->
+            <div class="card wide">
+                <h2>Disk Usage</h2>
+                <div id="disk-list" class="disk-list"></div>
+            </div>
+
+            <!-- SMART Health -->
+            <div class="card wide">
+                <h2>Disk Health (SMART)</h2>
+                <div id="smart-list" class="smart-list"></div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <span>Server Monitor v1.0</span>
+        <span id="db-stats"></span>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -26,3 +26,25 @@ Thumbs.db
 
 # Logs
 *.log
+
+# SSH Keys & Secrets
+*.pem
+*.key
+*_key
+*_rsa
+*_ed25519
+id_rsa*
+id_ed25519*
+*.pub
+aleph_ssh_key*
+*.crt
+*.pfx
+*.p12
+
+# Sensitive files
+*.env
+.env.*
+secrets.yml
+credentials.json
+*secret*
+*password*

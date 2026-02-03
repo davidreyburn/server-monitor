@@ -111,6 +111,41 @@ privileged: true
 | GET /api/config | Current configuration |
 | GET /health | Health check |
 
+## Health Check Configuration
+
+The Docker health check uses an explicit IPv4 address (`127.0.0.1`) instead of `localhost`:
+
+```yaml
+healthcheck:
+  test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
+```
+
+**Why not use `localhost`?**
+
+Docker's DNS resolution can cause issues:
+1. `localhost` resolves to both IPv4 (`127.0.0.1`) and IPv6 (`::1`)
+2. wget attempts IPv6 first: `[::1]:8080`
+3. gunicorn binds to `0.0.0.0:8080` (IPv4 only)
+4. IPv6 connection fails → health check fails → container shows "unhealthy"
+5. Application works perfectly on IPv4 but Docker marks it unhealthy
+
+**Solution**: Using `127.0.0.1` explicitly:
+- Forces IPv4 connection (no DNS ambiguity)
+- Connects directly to where gunicorn is listening
+- Prevents false "unhealthy" status
+
+**Verify health check is working:**
+```bash
+# Check container health status
+docker ps --filter name=server-monitor
+
+# View detailed health check logs
+docker inspect server-monitor --format='{{json .State.Health}}' | jq .
+
+# Manually test the health endpoint
+curl http://127.0.0.1:8081/health
+```
+
 ## Resource Usage
 
 Container limits (configurable in docker-compose.yml):
@@ -136,4 +171,31 @@ Container limits (configurable in docker-compose.yml):
 ```bash
 docker logs server-monitor
 docker logs -f server-monitor  # follow
+```
+
+**Container shows as unhealthy:**
+- Check health check logs: `docker inspect server-monitor --format='{{json .State.Health}}' | jq .`
+- Verify the application is actually working: `curl http://localhost:8081`
+- Ensure docker-compose.yml uses `127.0.0.1` (not `localhost`) in health check
+- Test health endpoint inside container: `docker exec server-monitor wget -O- http://127.0.0.1:8080/health`
+
+**Debug Docker health check:**
+```bash
+# View full container health status
+docker inspect server-monitor --format='{{json .State.Health}}' | jq .
+
+# Check last 5 health check results
+docker inspect server-monitor --format='{{range .State.Health.Log}}{{.Output}}{{end}}'
+
+# Manually run health check command inside container
+docker exec server-monitor wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/health
+
+# Check if gunicorn is listening on the right port
+docker exec server-monitor netstat -tlnp | grep 8080
+```
+
+**Restart container to reset health status:**
+```bash
+cd /path/to/server-monitor
+docker compose restart
 ```

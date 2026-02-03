@@ -59,8 +59,16 @@ services:
     # Option 2: Full privileged mode (use only if Option 1 doesn't work)
     # privileged: true
 
+    # Health check configuration
+    # NOTE: Use 127.0.0.1 (IPv4) instead of localhost to avoid IPv6/IPv4 issues
+    # Problem: Docker resolves localhost to both IPv4 (127.0.0.1) and IPv6 (::1)
+    # - wget tries IPv6 first, connecting to [::1]:8080
+    # - gunicorn only binds to IPv4 (0.0.0.0:8080), not IPv6
+    # - IPv6 connection fails, causing false "unhealthy" status
+    # Solution: Explicit 127.0.0.1 forces IPv4, bypasses DNS, connects correctly
+    # See README.md "Health Check Configuration" section for details
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:8080/health"]
       interval: 30s
       timeout: 10s
       retries: 3

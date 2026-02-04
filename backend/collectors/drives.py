@@ -136,7 +136,7 @@ def _fallback_drive_discovery() -> dict:
 
 def _get_mount_info() -> dict:
     """
-    Parse df output to get mount point information.
+    Parse /host/proc/mounts to get mount point information from the host.
 
     Returns:
         dict: Mount info keyed by device path
@@ -144,53 +144,66 @@ def _get_mount_info() -> dict:
     """
     mount_info = {}
 
-    try:
-        result = subprocess.run(
-            ['df', '-B1', '--output=source,target,fstype'],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
+    # Try to read from host's /proc/mounts (when running in container)
+    mounts_paths = ['/host/proc/mounts', '/proc/mounts', '/etc/mtab']
 
-        if result.returncode != 0:
-            logger.warning(f"df command failed: {result.stderr}")
-            return mount_info
+    for mounts_path in mounts_paths:
+        try:
+            with open(mounts_path, 'r') as f:
+                for line in f:
+                    parts = line.split()
+                    if len(parts) < 3:
+                        continue
 
-        lines = result.stdout.strip().split('\n')
-        # Skip header line
-        for line in lines[1:]:
-            parts = line.split(maxsplit=2)
-            if len(parts) < 3:
-                continue
+                    source = parts[0]
+                    target = parts[1]
+                    fstype = parts[2]
 
-            source = parts[0]
-            target = parts[1]
-            fstype = parts[2]
+                    # Only track real devices (not tmpfs, overlay, etc.)
+                    if not source.startswith('/dev/'):
+                        continue
 
-            # Only track real devices (not tmpfs, overlay, etc.)
-            if not source.startswith('/dev/'):
-                continue
+                    # Skip special devices
+                    if source.startswith('/dev/loop') or source.startswith('/dev/mapper'):
+                        continue
 
-            # Extract base device (e.g., /dev/sda from /dev/sda1)
-            # This helps match partitions to their parent drives
-            base_device = source
-            if any(source.endswith(str(i)) for i in range(10)):
-                # Remove partition number
-                base_device = source.rstrip('0123456789')
+                    # Extract base device (e.g., /dev/sda from /dev/sda1)
+                    # This helps match partitions to their parent drives
+                    base_device = source
 
-            # Store info for both the specific device and base device
-            for device in [source, base_device]:
-                if device not in mount_info:
-                    mount_info[device] = {
-                        'mount_point': target,
-                        'fstype': fstype
-                    }
+                    # Handle standard partitions (sda1, nvme0n1p1)
+                    if 'nvme' in source and 'p' in source:
+                        # For NVMe: /dev/nvme0n1p1 -> /dev/nvme0n1
+                        base_device = source.rsplit('p', 1)[0]
+                    elif any(source.endswith(str(i)) for i in range(10)):
+                        # For standard: /dev/sda1 -> /dev/sda
+                        base_device = source.rstrip('0123456789')
 
-    except subprocess.TimeoutExpired:
-        logger.error("df command timed out")
-    except FileNotFoundError:
-        logger.warning("df command not found")
-    except Exception as e:
-        logger.error(f"Error parsing mount info: {e}")
+                    # Store info for both the specific partition and base device
+                    # If multiple partitions are mounted, prefer showing the root/main partition
+                    for device in [source, base_device]:
+                        if device not in mount_info:
+                            mount_info[device] = {
+                                'mount_point': target,
+                                'fstype': fstype
+                            }
+                        elif target == '/' and mount_info[device]['mount_point'] != '/':
+                            # Prefer root mount point
+                            mount_info[device] = {
+                                'mount_point': target,
+                                'fstype': fstype
+                            }
 
+                # Successfully read mounts, return
+                logger.debug(f"Successfully read mount info from {mounts_path}")
+                return mount_info
+
+        except FileNotFoundError:
+            logger.debug(f"Mount file not found: {mounts_path}")
+            continue
+        except Exception as e:
+            logger.warning(f"Error reading {mounts_path}: {e}")
+            continue
+
+    logger.warning("Could not read mount information from any source")
     return mount_info

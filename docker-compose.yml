@@ -23,6 +23,9 @@ services:
       # Docker socket for container monitoring (read-only)
       - /var/run/docker.sock:/var/run/docker.sock:ro
 
+      # External drive for disk usage monitoring (read-only)
+      - /mnt/external-hdd:/mnt/external-hdd:ro
+
     environment:
       # Data collection interval in seconds (default: 5 minutes)
       - COLLECTION_INTERVAL=300

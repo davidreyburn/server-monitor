@@ -145,7 +145,8 @@ def _get_mount_info() -> dict:
     mount_info = {}
 
     # Try to read from host's /proc/mounts (when running in container)
-    mounts_paths = ['/host/proc/mounts', '/proc/mounts', '/etc/mtab']
+    # /host/proc/1/mounts is the init process on the host (PID 1) which has the host's mount namespace
+    mounts_paths = ['/host/proc/1/mounts', '/host/proc/mounts', '/proc/mounts', '/etc/mtab']
 
     for mounts_path in mounts_paths:
         try:

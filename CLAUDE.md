@@ -78,7 +78,7 @@ ssh chives@192.168.1.192 "docker inspect server-monitor --format='{{.State.Healt
 - Container needs Docker socket mount (`/var/run/docker.sock:ro`) for Docker monitoring
 - Database init and scheduler must run at module load (not in `__main__`) for gunicorn compatibility
 - Disk collector filters out pseudo-filesystems (efivarfs, sysfs, tmpfs, etc.) and very small filesystems (<10 MB) to prevent dashboard clutter
-- Drive collector uses `lsblk` to discover all block devices and cross-references with `df` for mount info
+- Drive collector uses `lsblk` to discover all block devices and reads `/host/proc/1/mounts` (host init process) to get mount info from host's mount namespace
 - Docker monitoring uses Docker SDK (docker>=7.0.0) to collect comprehensive container metrics
 
 ## Resolved Issues
@@ -86,3 +86,4 @@ ssh chives@192.168.1.192 "docker inspect server-monitor --format='{{.State.Healt
 - **2026-02-03:** Fixed Docker health check IPv4/IPv6 issue - Changed health check from `localhost` to `127.0.0.1` to prevent false "unhealthy" status. Docker's localhost resolves to both IPv4 and IPv6, but gunicorn only binds to IPv4, causing health check failures. Enhanced documentation with comprehensive troubleshooting guide.
 - **2026-02-03:** Published to GitHub - Created public repository at https://github.com/davidreyburn/server-monitor with complete commit history.
 - **2026-02-04:** Added all connected drives and Docker container monitoring - Implemented two new monitoring features: (1) All Connected Drives section showing all physical drives with mount status, size, and model; (2) Docker Containers section with comprehensive metrics including status, health, CPU%, memory, network I/O, uptime, and restart count. Performance impact minimal (~150ms per 5-minute collection cycle). Resource usage well within limits (43MB / 256MB memory, <0.1% CPU).
+- **2026-02-04:** Fixed drives showing as unmounted - Container's mount namespace prevented seeing host mounts. Fixed by reading from `/host/proc/1/mounts` (host's init process) instead of `/host/proc/mounts`. Now correctly shows /dev/sda mounted at /boot (ext4) and /dev/sdb mounted at /mnt/external-hdd (exfat).

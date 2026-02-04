@@ -70,6 +70,7 @@ ssh chives@192.168.1.192 "docker inspect server-monitor --format='{{.State.Healt
 - Added `coreutils` to Alpine image for `df` command
 - Container needs SYS_RAWIO capability for SMART disk access
 - Database init and scheduler must run at module load (not in `__main__`) for gunicorn compatibility
+- Disk collector filters out pseudo-filesystems (efivarfs, sysfs, tmpfs, etc.) and very small filesystems (<10 MB) to prevent dashboard clutter
 
 ## Resolved Issues
 - **2026-02-01:** Fixed graphs not displaying - database wasn't initialized because `init_database()` was in `__main__` block which gunicorn doesn't execute. Moved to module-level initialization.

@@ -5,6 +5,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Filtering constants
+EXCLUDED_FSTYPES = (
+    'tmpfs', 'devtmpfs', 'squashfs', 'overlay',  # existing
+    'efivarfs', 'sysfs', 'proc', 'cgroup', 'cgroup2',  # pseudo-filesystems
+    'configfs', 'debugfs', 'tracefs', 'securityfs',  # debug/security
+    'pstore', 'bpf', 'fusectl', 'hugetlbfs'  # specialized
+)
+
+EXCLUDED_MOUNT_PREFIXES = ('/sys/', '/proc/', '/dev/', '/run/')
+MIN_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB minimum
+
 
 def collect_disk_metrics() -> dict:
     """Collect disk usage for all mounted filesystems."""
@@ -29,7 +40,7 @@ def collect_disk_metrics() -> dict:
                 source = parts[0]
                 fstype = parts[1]
 
-                if fstype in ('tmpfs', 'devtmpfs', 'squashfs', 'overlay'):
+                if fstype in EXCLUDED_FSTYPES:
                     continue
                 if source.startswith('/dev/loop'):
                     continue
@@ -41,7 +52,13 @@ def collect_disk_metrics() -> dict:
                     percent_str = parts[5].rstrip('%')
                     mount_point = ' '.join(parts[6:])
 
-                    if size_bytes == 0:
+                    # Filter pseudo-filesystem mount points
+                    if any(mount_point.startswith(prefix) for prefix in EXCLUDED_MOUNT_PREFIXES):
+                        continue
+
+                    # Filter very small filesystems (likely pseudo-filesystems)
+                    if size_bytes < MIN_SIZE_BYTES:
+                        logger.debug(f"Skipping small filesystem: {mount_point} ({size_bytes} bytes)")
                         continue
 
                     disks[mount_point] = {

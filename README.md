@@ -163,6 +163,14 @@ Container limits (configurable in docker-compose.yml):
 - Verify disk devices are mounted in container
 - May need privileged mode for some systems
 
+**Some filesystems not displayed:**
+The disk collector automatically filters out:
+- Pseudo-filesystems: tmpfs, efivarfs, sysfs, proc, cgroup, etc.
+- System mount points: /sys/*, /proc/*, /dev/*, /run/*
+- Very small filesystems: <10 MB minimum
+
+This prevents cluttering the dashboard with kernel interfaces and non-storage filesystems.
+
 **High resource usage:**
 - Increase COLLECTION_INTERVAL
 - Reduce RETENTION_DAYS

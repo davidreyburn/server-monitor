@@ -35,6 +35,8 @@ async function loadData() {
         updateMemoryDisplay(data.memory);
         updateDiskDisplay(data.disk);
         updateSmartDisplay(data.smart);
+        updateDrivesDisplay(data.drives);
+        updateDockerDisplay(data.docker);
 
         document.getElementById('last-update').textContent =
             `Last update: ${new Date().toLocaleTimeString()}`;
@@ -301,4 +303,135 @@ function getDiskStatus(percent) {
     if (percent >= (d.critical || 95)) return 'danger';
     if (percent >= (d.warning || 80)) return 'warning';
     return 'success';
+}
+
+function updateDrivesDisplay(drives) {
+    const container = document.getElementById('drives-list');
+
+    if (!drives || drives.error) {
+        container.innerHTML = '<div class="error-message">Unable to retrieve drives information</div>';
+        return;
+    }
+
+    if (drives.info) {
+        container.innerHTML = `<div class="info-message">${drives.info}</div>`;
+        return;
+    }
+
+    container.innerHTML = Object.entries(drives).map(([device, data]) => {
+        const statusClass = data.mounted ? 'mounted' : 'unmounted';
+        const statusText = data.mounted ? `Mounted at ${data.mount_point}` : 'Unmounted';
+
+        return `
+            <div class="drive-item ${statusClass}">
+                <div class="device-name">${device}</div>
+                <div class="device-model">${data.model || 'Unknown'}</div>
+                <div class="device-info">
+                    <span>${data.size_gb} GB</span>
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                    ${data.fstype ? `<span class="fstype">${data.fstype}</span>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function updateDockerDisplay(docker) {
+    const container = document.getElementById('docker-list');
+
+    if (!docker || docker.error) {
+        container.innerHTML = `<div class="info-message">Docker monitoring unavailable: ${docker?.error || 'unknown error'}</div>`;
+        return;
+    }
+
+    if (docker.info) {
+        container.innerHTML = `<div class="info-message">${docker.info}</div>`;
+        return;
+    }
+
+    // Sort: running first, then by name
+    const entries = Object.entries(docker).sort(([nameA, dataA], [nameB, dataB]) => {
+        if (dataA.status === 'running' && dataB.status !== 'running') return -1;
+        if (dataA.status !== 'running' && dataB.status === 'running') return 1;
+        return nameA.localeCompare(nameB);
+    });
+
+    container.innerHTML = entries.map(([name, data]) => {
+        const statusClass = getDockerStatusClass(data.status);
+        const healthClass = getDockerHealthClass(data.health);
+        const uptime = formatUptime(data.uptime_seconds);
+
+        return `
+            <div class="docker-item ${statusClass}">
+                <div class="docker-header">
+                    <div>
+                        <div class="container-name">${name}</div>
+                        <div class="container-image">${data.image}</div>
+                    </div>
+                    <div class="docker-badges">
+                        <span class="status-badge ${statusClass}">${data.status}</span>
+                        ${data.health !== 'none' ? `<span class="health-badge ${healthClass}">${data.health}</span>` : ''}
+                    </div>
+                </div>
+                ${data.status === 'running' ? `
+                    <div class="docker-stats">
+                        <div class="stat">
+                            <span class="stat-label">CPU</span>
+                            <span class="stat-value">${data.cpu_percent}%</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Memory</span>
+                            <span class="stat-value">${data.memory_mb} MB (${data.memory_percent}%)</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Network RX</span>
+                            <span class="stat-value">${data.network_rx_mb} MB</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Network TX</span>
+                            <span class="stat-value">${data.network_tx_mb} MB</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Uptime</span>
+                            <span class="stat-value">${uptime}</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-label">Restarts</span>
+                            <span class="stat-value">${data.restart_count}</span>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    }).join('');
+}
+
+function getDockerStatusClass(status) {
+    const map = {
+        'running': 'status-running',
+        'exited': 'status-exited',
+        'paused': 'status-paused',
+        'restarting': 'status-restarting',
+        'dead': 'status-dead'
+    };
+    return map[status] || 'status-unknown';
+}
+
+function getDockerHealthClass(health) {
+    const map = {
+        'healthy': 'health-healthy',
+        'unhealthy': 'health-unhealthy',
+        'starting': 'health-starting'
+    };
+    return map[health] || '';
+}
+
+function formatUptime(seconds) {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ${minutes % 60}m`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ${hours % 24}h`;
 }

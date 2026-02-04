@@ -76,6 +76,7 @@ ssh chives@192.168.1.192 "docker inspect server-monitor --format='{{.State.Healt
 - Added `coreutils` to Alpine image for `df` command
 - Container needs SYS_RAWIO capability for SMART disk access
 - Container needs Docker socket mount (`/var/run/docker.sock:ro`) for Docker monitoring
+- External drive mounted at `/mnt/external-hdd:ro` for disk usage monitoring in the Disk Usage section
 - Database init and scheduler must run at module load (not in `__main__`) for gunicorn compatibility
 - Disk collector filters out pseudo-filesystems (efivarfs, sysfs, tmpfs, etc.) and very small filesystems (<10 MB) to prevent dashboard clutter
 - Drive collector uses `lsblk` to discover all block devices and reads `/host/proc/1/mounts` (host init process) to get mount info from host's mount namespace

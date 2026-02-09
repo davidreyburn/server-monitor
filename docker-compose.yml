@@ -26,6 +26,9 @@ services:
       # External drive for disk usage monitoring (read-only)
       - /mnt/external-hdd:/mnt/external-hdd:ro
 
+      # Internal SSD for disk usage monitoring (read-only)
+      - /mnt/internal-ssd:/mnt/internal-ssd:ro
+
     environment:
       # Data collection interval in seconds (default: 5 minutes)
       - COLLECTION_INTERVAL=300

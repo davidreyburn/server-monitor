@@ -381,14 +381,15 @@ function renderDiskHexes(disks, smart) {
 
         const { dark, fill } = fillColors[hexClass];
         const bgStyle = `linear-gradient(to top, ${fill} ${pct}%, ${dark} ${pct}%)`;
-        const scrollClass = mount.length > 10 ? ' scrolling' : '';
+        const scrollClass    = mount.length > 10      ? ' scrolling' : '';
+        const devScrollClass = disk.device.length > 10 ? ' scrolling' : '';
 
         return `
         <div class="disk-hex ${hexClass}" style="background: ${bgStyle}" title="${mount} — ${disk.device}">
             <div class="hex-mount"><span class="hex-mount-text${scrollClass}">${mount}</span></div>
             <div class="hex-pct">${pct}%</div>
             <div class="hex-gb">${disk.used_gb}/${disk.total_gb}G</div>
-            <div class="hex-dev">${disk.device}</div>
+            <div class="hex-dev"><span class="hex-mount-text${devScrollClass}">${disk.device}</span></div>
             ${smartBadge}
         </div>`;
     }).join('');

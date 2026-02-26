@@ -431,7 +431,7 @@ select:focus, button:focus { outline: none; }
 .hex-critical .hex-pct { color: var(--red); }
 .hex-warn     .hex-pct { color: var(--amber); }
 .hex-gb  { font-size: 0.65rem; color: var(--dim); line-height: 1.4; }
-.hex-dev { font-size: 0.6rem;  color: var(--dim); }
+.hex-dev { font-size: 0.6rem;  color: var(--dim); width: 100%; overflow: hidden; }
 .hex-smart-ok   { font-size: 0.6rem; color: var(--green); margin-top: 2px; }
 .hex-smart-fail { font-size: 0.65rem; color: var(--red); margin-top: 2px; }
 

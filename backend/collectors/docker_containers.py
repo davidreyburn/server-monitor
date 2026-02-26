@@ -134,7 +134,11 @@ def _get_container_stats(container) -> dict:
         cpu_percent = 0.0
 
     # Memory calculation
+    # Subtract inactive_file (reclaimable page cache) to match `docker stats` CLI behaviour.
+    # On cgroup v2 (Ubuntu 24.04+), raw `usage` includes page cache which inflates the number.
     memory_usage = stats['memory_stats'].get('usage', 0)
+    memory_usage -= stats['memory_stats'].get('stats', {}).get('inactive_file', 0)
+    memory_usage = max(memory_usage, 0)
     memory_limit = stats['memory_stats'].get('limit', 1)
     memory_mb = memory_usage / (1024 * 1024)
     memory_percent = (memory_usage / memory_limit) * 100 if memory_limit > 0 else 0

@@ -3,7 +3,7 @@
 ## Project Summary
 Lightweight server monitoring dashboard deployed to Ubuntu server at 192.168.1.192.
 
-## Current State (2026-02-04)
+## Current State (2026-02-26)
 - **Status:** Deployed and running
 - **Dashboard URL:** http://192.168.1.192:8081
 - **Container:** `server-monitor` running via docker-compose
@@ -12,13 +12,13 @@ Lightweight server monitoring dashboard deployed to Ubuntu server at 192.168.1.1
 
 ## Tech Stack
 - Backend: Python Flask + SQLite
-- Frontend: Vanilla JS + Chart.js
+- Frontend: Vanilla JS + Chart.js (canvas arc gauge + waveform), Share Tech Mono font
 - Container: Alpine Linux, multi-stage build
 - Resource limits: 256MB RAM, 0.5 CPU
 
 ## Key Files
 - `backend/app.py` - Flask API server with APScheduler for data collection
-- `backend/collectors/` - Metric collectors (cpu, memory, disk, smart, drives, docker_containers)
+- `backend/collectors/` - Metric collectors (cpu, memory, disk, smart, drives, docker_containers, processes)
 - `frontend/` - Dashboard UI (index.html, style.css, app.js)
 - `docker-compose.yml` - Container config (port 8081, volume mounts, Docker socket)
 
@@ -58,12 +58,15 @@ ssh chives@192.168.1.192 "docker inspect server-monitor --format='{{.State.Healt
 ```
 
 ## Features
-- **System Monitoring:** CPU temperature, load average, memory usage
-- **Disk Monitoring:** Usage stats with SMART health data
-- **All Connected Drives:** Shows all physical drives (mounted and unmounted) with size and model
-- **Docker Containers:** Comprehensive monitoring with status, health, CPU%, memory, network I/O, uptime, restart count
-- **Historical Data:** 90-day retention with interactive charts
-- **Auto-refresh:** 60-second interval, configurable time ranges
+- **NGE-themed interface:** Neon Genesis Evangelion aesthetic — dark panels, electric green/cyan palette, scanlines, Share Tech Mono font, corner bracket decorations, boot animation
+- **Layout:** Three-column dashboard — Left (CPU + RAM + Storage) | Center (Docker) | Right (Processes) — with MAGI system bottom bar
+- **CPU Panel:** Canvas arc gauge (temperature), scrolling canvas waveform (historical temp), load average readout
+- **Memory Panel:** Chunky segmented bar gauge (green → yellow → red), used/total GB
+- **Storage Panel:** Hexagonal tiles per mount point with SMART health indicator
+- **Docker Containers:** Parallelogram bars color-coded by status (green/amber/red), with CPU%, memory, uptime, network I/O
+- **Process Monitor:** Top 12 processes by RSS memory — PID, name, MB, % of RAM
+- **Historical Data:** 90-day retention; CPU temp waveform supports 24h/7d/30d views
+- **Auto-refresh:** 60-second interval
 
 ## Pending / Future Work
 - [ ] Email/notification alerts for thresholds
@@ -81,6 +84,10 @@ ssh chives@192.168.1.192 "docker inspect server-monitor --format='{{.State.Healt
 - Disk collector filters out pseudo-filesystems (efivarfs, sysfs, tmpfs, etc.) and very small filesystems (<10 MB) to prevent dashboard clutter
 - Drive collector uses `lsblk` to discover all block devices and reads `/host/proc/1/mounts` (host init process) to get mount info from host's mount namespace
 - Docker monitoring uses Docker SDK (docker>=7.0.0) to collect comprehensive container metrics
+- Process collector reads `/host/proc/[pid]/comm`, `/statm`, and `/stat` directly — no extra dependencies
+- CPU collector also reads `/proc/uptime` and returns `uptime_seconds` in the load response
+- Frontend uses canvas (not Chart.js) for the arc gauge and scrolling waveform; Chart.js is still loaded but not actively used
+- `design-spec.md` and `reference/` directory (10 NGE reference images) exist locally but are not committed to the repo
 
 ## Resolved Issues
 - **2026-02-01:** Fixed graphs not displaying - database wasn't initialized because `init_database()` was in `__main__` block which gunicorn doesn't execute. Moved to module-level initialization.
@@ -88,3 +95,4 @@ ssh chives@192.168.1.192 "docker inspect server-monitor --format='{{.State.Healt
 - **2026-02-03:** Published to GitHub - Created public repository at https://github.com/davidreyburn/server-monitor with complete commit history.
 - **2026-02-04:** Added all connected drives and Docker container monitoring - Implemented two new monitoring features: (1) All Connected Drives section showing all physical drives with mount status, size, and model; (2) Docker Containers section with comprehensive metrics including status, health, CPU%, memory, network I/O, uptime, and restart count. Performance impact minimal (~150ms per 5-minute collection cycle). Resource usage well within limits (43MB / 256MB memory, <0.1% CPU).
 - **2026-02-04:** Fixed drives showing as unmounted - Container's mount namespace prevented seeing host mounts. Fixed by reading from `/host/proc/1/mounts` (host's init process) instead of `/host/proc/mounts`. Now correctly shows /dev/sda mounted at /boot (ext4) and /dev/sdb mounted at /mnt/external-hdd (exfat).
+- **2026-02-26:** Full NGE interface redesign - Rebuilt frontend with Neon Genesis Evangelion aesthetic. Added process monitoring backend collector (reads top 12 by RSS from /proc). Added uptime_seconds to CPU collector.

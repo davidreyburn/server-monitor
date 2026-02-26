@@ -420,13 +420,13 @@ function renderDockerBars(docker) {
                 ? `<span class="docker-health health-${data.health}">${data.health.toUpperCase()}</span>` : '';
 
         const stats = st === 'running' ? `
-            <span class="docker-stats-inline"><span class="docker-stats-scroll">
+            <span class="docker-stats-inline">
                 <span class="d-stat">CPU&nbsp;${data.cpu_percent}%</span>
                 <span class="d-stat">MEM&nbsp;${data.memory_mb}MB</span>
                 <span class="d-stat">UP&nbsp;${uptime}</span>
                 <span class="d-stat">↑${data.network_tx_mb}&nbsp;↓${data.network_rx_mb}MB</span>
                 ${data.restart_count > 0 ? `<span class="d-stat warn">RST:${data.restart_count}</span>` : ''}
-            </span></span>` : '';
+            </span>` : '';
 
         return `
         <div class="docker-bar status-${st}" title="${data.image}">

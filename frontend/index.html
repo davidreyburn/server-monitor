@@ -80,7 +80,7 @@
                     <div class="bracket-val" id="ram-percent-val">--%</div>
                     <div class="dim-label" id="ram-detail-val">-- / -- GB</div>
                 </div>
-                <div id="ram-bar-wrap"></div>
+                <div id="ram-bar-wrap"><div class="section-loading"><div class="loading-label">// INITIALIZING //</div><div class="loading-segs"><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div></div></div></div>
                 <div class="bar-scale">
                     <span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span>
                 </div>
@@ -89,7 +89,26 @@
             <!-- Storage Panel -->
             <div class="nge-panel boot-panel" id="disk-panel" data-boot-order="3">
                 <div class="panel-label">SECTION-03 // ストレージ // STORAGE</div>
-                <div id="disk-hexes"></div>
+                <div id="disk-hexes"><div class="section-loading"><div class="loading-label">// INITIALIZING //</div><div class="loading-segs"><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div></div></div></div>
+            </div>
+
+            <!-- Network Panel -->
+            <div class="nge-panel boot-panel" id="network-panel" data-boot-order="4">
+                <div class="panel-label">SECTION-06 // ネット // NETWORK I/O</div>
+                <div id="net-stats">
+                    <div class="net-stat">
+                        <span class="dim-label">↑ TX</span>
+                        <span class="net-val" id="net-tx-val">--</span>
+                    </div>
+                    <div class="net-stat">
+                        <span class="dim-label">↓ RX</span>
+                        <span class="net-val" id="net-rx-val">--</span>
+                    </div>
+                </div>
+                <canvas id="net-waveform"></canvas>
+                <div class="waveform-footer">
+                    <span class="dim-label">NET I/O HISTORY ── ↑TX <span class="legend-green">■</span> ↓RX <span class="legend-cyan">■</span></span>
+                </div>
             </div>
 
         </div><!-- /left-col -->
@@ -98,7 +117,7 @@
         <div id="center-col">
             <div class="nge-panel boot-panel" id="docker-panel" data-boot-order="1">
                 <div class="panel-label">SECTION-04 // コンテナ // DOCKER CONTAINERS</div>
-                <div id="docker-list"></div>
+                <div id="docker-list"><div class="section-loading"><div class="loading-label">// INITIALIZING //</div><div class="loading-segs"><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div></div></div></div>
             </div>
         </div><!-- /center-col -->
 
@@ -106,7 +125,11 @@
         <div id="right-col">
             <div class="nge-panel boot-panel" id="process-panel" data-boot-order="2">
                 <div class="panel-label">SECTION-05 // プロセス // ACTIVE PROCESSES</div>
-                <div id="process-list"></div>
+                <div id="process-list"><div class="section-loading"><div class="loading-label">// INITIALIZING //</div><div class="loading-segs"><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div></div></div></div>
+            </div>
+            <div class="nge-panel boot-panel" id="alert-panel" data-boot-order="3">
+                <div class="panel-label">SECTION-07 // アラート // THRESHOLD EVENTS</div>
+                <div id="alert-list"><div class="section-loading"><div class="loading-label">// INITIALIZING //</div><div class="loading-segs"><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div><div class="load-seg"></div></div></div></div>
             </div>
         </div><!-- /right-col -->
 

@@ -49,6 +49,7 @@ function setupEventListeners() {
     document.getElementById('refresh-btn').addEventListener('click', loadData);
     document.getElementById('time-range').addEventListener('change', () => {
         loadHistoricalData();
+        loadNetworkHistory();
         document.getElementById('waveform-range').textContent =
             document.getElementById('time-range').options[document.getElementById('time-range').selectedIndex].text;
     });
@@ -68,8 +69,10 @@ async function loadData() {
         updateCpuDisplay(data.cpu);
         updateMemoryDisplay(data.memory);
         renderDiskHexes(data.disk, data.smart);
-        renderDockerBars(data.docker);
-        renderProcessList(data.processes);
+        renderDockerBars(data.docker, data.memory);
+        renderProcessList(data.processes, data.memory);
+        updateNetworkStats(data.network);
+        updateMagiStatus(data);
 
         const uptime = data.cpu?.load?.uptime_seconds;
         if (uptime != null) {
@@ -84,6 +87,8 @@ async function loadData() {
         statusEl.className = 'status-nominal';
 
         loadHistoricalData();
+        loadNetworkHistory();
+        loadAlerts();
         loadStats();
 
     } catch (err) {
@@ -311,6 +316,15 @@ function drawWaveform() {
     ctx.shadowBlur  = 5;
     ctx.stroke();
     ctx.shadowBlur  = 0;
+
+    // Y-axis temperature labels
+    ctx.font         = `9px 'Share Tech Mono', monospace`;
+    ctx.fillStyle    = 'rgba(74, 149, 178, 0.55)';
+    ctx.textAlign    = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(`${Math.round(maxV)}°`, cw - 2, 2);
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(`${Math.round(minV)}°`, cw - 2, ch - 2);
 }
 
 // ─────────────────────────────────────────────────────
@@ -398,7 +412,7 @@ function renderDiskHexes(disks, smart) {
 // ─────────────────────────────────────────────────────
 //  Docker Bars
 // ─────────────────────────────────────────────────────
-function renderDockerBars(docker) {
+function renderDockerBars(docker, memory) {
     const container = document.getElementById('docker-list');
 
     if (!docker || docker.error || docker.info) {
@@ -406,8 +420,9 @@ function renderDockerBars(docker) {
         return;
     }
 
-    const order = { running: 0, restarting: 1, paused: 2, exited: 3, dead: 4 };
-    const entries = Object.entries(docker).sort(([, a], [, b]) =>
+    const totalMb   = memory?.total_mb || 16384;
+    const order     = { running: 0, restarting: 1, paused: 2, exited: 3, dead: 4 };
+    const entries   = Object.entries(docker).sort(([, a], [, b]) =>
         (order[a.status] ?? 5) - (order[b.status] ?? 5)
     );
 
@@ -419,10 +434,14 @@ function renderDockerBars(docker) {
             (data.health && data.health !== 'none')
                 ? `<span class="docker-health health-${data.health}">${data.health.toUpperCase()}</span>` : '';
 
+        const memMb    = parseFloat(data.memory_mb) || 0;
+        const memClass = memMb > totalMb * 0.4 ? 'd-stat warn-high' :
+                         memMb > totalMb * 0.2 ? 'd-stat warn' : 'd-stat';
+
         const stats = st === 'running' ? `
             <span class="docker-stats-inline">
                 <span class="d-stat">CPU&nbsp;${data.cpu_percent}%</span>
-                <span class="d-stat">MEM&nbsp;${data.memory_mb}MB</span>
+                <span class="${memClass}">MEM&nbsp;${data.memory_mb}MB</span>
                 <span class="d-stat">UP&nbsp;${uptime}</span>
                 <span class="d-stat">↑${data.network_tx_mb}&nbsp;↓${data.network_rx_mb}MB</span>
                 ${data.restart_count > 0 ? `<span class="d-stat warn">RST:${data.restart_count}</span>` : ''}
@@ -442,7 +461,7 @@ function renderDockerBars(docker) {
 // ─────────────────────────────────────────────────────
 //  Process List
 // ─────────────────────────────────────────────────────
-function renderProcessList(processes) {
+function renderProcessList(processes, memory) {
     const container = document.getElementById('process-list');
 
     if (!processes || processes.error) {
@@ -456,14 +475,18 @@ function renderProcessList(processes) {
         return;
     }
 
-    const rows = list.map(p => `
+    const totalMb = memory?.total_mb || 16384;
+    const rows = list.map(p => {
+        const memClass = p.mem_mb > totalMb * 0.05 ? 'proc-mem-high' :
+                         p.mem_mb > totalMb * 0.02 ? 'proc-mem-warn' : 'proc-mem';
+        return `
         <div class="proc-row ${p.mem_percent > 10 ? 'proc-high' : ''}">
             <span class="proc-pid">${p.pid}</span>
             <span class="proc-name" title="${p.name}">${p.name.slice(0, 14)}</span>
-            <span class="proc-mem">${p.mem_mb}M</span>
+            <span class="${memClass}">${p.mem_mb}M</span>
             <span class="proc-pct">${p.mem_percent}%</span>
-        </div>`
-    ).join('');
+        </div>`;
+    }).join('');
 
     container.innerHTML = `
         <div class="proc-header">
@@ -473,6 +496,193 @@ function renderProcessList(processes) {
             <span style="text-align:right">%MEM</span>
         </div>
         ${rows}`;
+}
+
+// ─────────────────────────────────────────────────────
+//  MAGI Dynamic Status
+// ─────────────────────────────────────────────────────
+function updateMagiStatus(data) {
+    const t = thresholds;
+
+    // MELCHIOR·1 = CPU temperature
+    let cpuStatus = 'OK';
+    const temps = data.cpu?.temperature;
+    if (temps && !temps.error) {
+        let temp = null;
+        for (const zone of Object.values(temps)) {
+            if (typeof zone === 'object' && zone.temp_celsius != null) {
+                const ztype = (zone.type || '').toLowerCase();
+                if (ztype.includes('cpu') || ztype.includes('x86') || ztype.includes('pkg')) {
+                    temp = zone.temp_celsius; break;
+                }
+            }
+        }
+        if (temp === null) {
+            const first = Object.values(temps).find(z => typeof z === 'object' && z.temp_celsius != null);
+            if (first) temp = first.temp_celsius;
+        }
+        if (temp != null) {
+            if (temp >= (t.temperature?.critical || 85)) cpuStatus = 'FAIL';
+            else if (temp >= (t.temperature?.warning  || 70)) cpuStatus = 'WARN';
+        }
+    }
+
+    // BALTHASAR·2 = RAM
+    let ramStatus = 'OK';
+    const ramPct = data.memory?.percent_used;
+    if (ramPct != null) {
+        if (ramPct >= (t.memory?.critical || 95)) ramStatus = 'FAIL';
+        else if (ramPct >= (t.memory?.warning  || 85)) ramStatus = 'WARN';
+    }
+
+    // CASPER·3 = Disk (worst mount)
+    let diskStatus = 'OK';
+    if (data.disk && !data.disk.error) {
+        for (const disk of Object.values(data.disk)) {
+            const pct = disk.percent_used;
+            if (pct >= (t.disk?.critical || 95)) { diskStatus = 'FAIL'; break; }
+            if (pct >= (t.disk?.warning  || 80) && diskStatus !== 'FAIL') diskStatus = 'WARN';
+        }
+    }
+
+    _setMagi(0, cpuStatus);
+    _setMagi(1, ramStatus);
+    _setMagi(2, diskStatus);
+}
+
+function _setMagi(idx, status) {
+    const unit = document.querySelectorAll('.magi-unit')[idx];
+    if (!unit) return;
+    const el = unit.querySelector('.magi-status');
+    el.textContent = status;
+    el.className = 'magi-status' +
+        (status === 'WARN' ? ' magi-warn' : status === 'FAIL' ? ' magi-fail' : '');
+}
+
+// ─────────────────────────────────────────────────────
+//  Network Panel
+// ─────────────────────────────────────────────────────
+function updateNetworkStats(net) {
+    if (!net || net.error || net._initializing) return;
+    const total = net._total;
+    if (!total) return;
+    const fmt = v => v < 0.1 ? `${(v * 1024).toFixed(1)} KB/s` : `${v.toFixed(3)} MB/s`;
+    document.getElementById('net-tx-val').textContent = fmt(total.tx_mb_per_sec);
+    document.getElementById('net-rx-val').textContent = fmt(total.rx_mb_per_sec);
+}
+
+async function loadNetworkHistory() {
+    const hours = document.getElementById('time-range').value;
+    try {
+        const res  = await fetch(`${API_BASE}/api/history/network?hours=${hours}`);
+        const json = await res.json();
+        if (!json.data || json.data.length < 2) return;
+        const txBuf = json.data.map(d => d.data?._total?.tx_mb_per_sec ?? 0);
+        const rxBuf = json.data.map(d => d.data?._total?.rx_mb_per_sec ?? 0);
+        drawNetworkWaveform(txBuf, rxBuf);
+    } catch (err) {
+        console.error('Network history error:', err);
+    }
+}
+
+function drawNetworkWaveform(txBuf, rxBuf) {
+    const canvas = document.getElementById('net-waveform');
+    if (!canvas) return;
+
+    const dpr  = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    const cw   = rect.width  || 240;
+    const ch   = rect.height || 52;
+    if (cw === 0 || ch === 0) return;
+
+    canvas.width  = Math.round(cw * dpr);
+    canvas.height = Math.round(ch * dpr);
+
+    const ctx = canvas.getContext('2d');
+    ctx.scale(dpr, dpr);
+
+    const maxV = Math.max(...txBuf, ...rxBuf, 0.01);
+    const n    = Math.max(txBuf.length, rxBuf.length, 2);
+
+    // Horizontal grid
+    ctx.strokeStyle = 'rgba(0, 217, 255, 0.07)';
+    ctx.lineWidth   = 0.5;
+    for (let i = 0; i <= 4; i++) {
+        const y = (ch / 4) * i;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(cw, y); ctx.stroke();
+    }
+
+    const drawLine = (buf, color, fillColor) => {
+        if (buf.length < 2) return;
+        const step = cw / (buf.length - 1);
+
+        ctx.beginPath();
+        buf.forEach((v, i) => {
+            const x = i * step;
+            const y = ch - (v / maxV) * ch * 0.88 - ch * 0.04;
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.lineTo((buf.length - 1) * step, ch);
+        ctx.lineTo(0, ch);
+        ctx.closePath();
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+
+        ctx.beginPath();
+        buf.forEach((v, i) => {
+            const x = i * step;
+            const y = ch - (v / maxV) * ch * 0.88 - ch * 0.04;
+            i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+        });
+        ctx.strokeStyle = color;
+        ctx.lineWidth   = 1.5;
+        ctx.shadowColor = color;
+        ctx.shadowBlur  = 5;
+        ctx.stroke();
+        ctx.shadowBlur  = 0;
+    };
+
+    drawLine(rxBuf, '#00d9ff', 'rgba(0, 217, 255, 0.06)');
+    drawLine(txBuf, '#1eff00', 'rgba(30, 255, 0, 0.06)');
+
+    // Y-axis label
+    const fmtMb = v => v < 0.1 ? `${(v * 1024).toFixed(0)}K` : `${v.toFixed(2)}M`;
+    ctx.font         = `9px 'Share Tech Mono', monospace`;
+    ctx.fillStyle    = 'rgba(74, 149, 178, 0.55)';
+    ctx.textAlign    = 'right';
+    ctx.textBaseline = 'top';
+    ctx.fillText(fmtMb(maxV), cw - 2, 2);
+}
+
+// ─────────────────────────────────────────────────────
+//  Alert Log
+// ─────────────────────────────────────────────────────
+async function loadAlerts() {
+    const container = document.getElementById('alert-list');
+    try {
+        const res    = await fetch(`${API_BASE}/api/alerts`);
+        const alerts = await res.json();
+
+        if (!Array.isArray(alerts) || alerts.length === 0) {
+            container.innerHTML = '<div class="no-data">NO ALERTS LOGGED</div>';
+            return;
+        }
+
+        container.innerHTML = alerts.map(a => {
+            const d   = new Date(a.timestamp + 'Z');
+            const ts  = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+            return `
+            <div class="alert-row">
+                <span class="alert-badge alert-badge-${a.level}">${a.level.toUpperCase()}</span>
+                <div class="alert-content">
+                    <div class="alert-msg">${a.message}</div>
+                    <div class="alert-time">${ts}</div>
+                </div>
+            </div>`;
+        }).join('');
+    } catch (err) {
+        container.innerHTML = '<div class="no-data">ALERT DATA UNAVAILABLE</div>';
+    }
 }
 
 // ─────────────────────────────────────────────────────

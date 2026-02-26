@@ -37,6 +37,21 @@ def init_database():
             ON metrics(metric_type, timestamp)
         ''')
 
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS alerts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                level TEXT NOT NULL,
+                metric TEXT NOT NULL,
+                message TEXT NOT NULL
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE INDEX IF NOT EXISTS idx_alerts_timestamp
+            ON alerts(timestamp)
+        ''')
+
         conn.commit()
         logger.info("Database initialized successfully")
 
@@ -121,6 +136,47 @@ def get_latest_metrics(metric_type: str) -> Optional[dict]:
         return None
 
 
+def check_and_store_alert(level: str, metric: str, message: str) -> bool:
+    """Store an alert only if an identical level+metric alert hasn't fired in the last hour."""
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT id FROM alerts
+                WHERE metric = ? AND level = ?
+                AND timestamp > datetime('now', '-1 hour')
+                LIMIT 1
+            ''', (metric, level))
+            if cursor.fetchone():
+                return False
+            cursor.execute(
+                'INSERT INTO alerts (level, metric, message) VALUES (?, ?, ?)',
+                (level, metric, message)
+            )
+            conn.commit()
+            return True
+    except Exception as e:
+        logger.error(f"Error storing alert: {e}")
+        return False
+
+
+def get_alerts(limit: int = 50) -> list:
+    """Return recent alerts newest-first."""
+    try:
+        with get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('''
+                SELECT timestamp, level, metric, message
+                FROM alerts
+                ORDER BY timestamp DESC
+                LIMIT ?
+            ''', (limit,))
+            return [dict(row) for row in cursor.fetchall()]
+    except Exception as e:
+        logger.error(f"Error getting alerts: {e}")
+        return []
+
+
 def cleanup_old_data(retention_days: int = 90):
     """Remove data older than retention period."""
     try:
@@ -133,6 +189,10 @@ def cleanup_old_data(retention_days: int = 90):
                 (cutoff.isoformat(),)
             )
             deleted = cursor.rowcount
+            cursor.execute(
+                'DELETE FROM alerts WHERE timestamp < ?',
+                (cutoff.isoformat(),)
+            )
             conn.commit()
 
             if deleted > 0:

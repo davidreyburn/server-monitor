@@ -382,7 +382,7 @@ select:focus, button:focus { outline: none; }
     gap: 6px;
     justify-content: center;
     align-items: flex-start;
-    padding: 6px 0 4px;
+    padding: 14px 0 4px;
 }
 
 .disk-hex {
@@ -398,7 +398,8 @@ select:focus, button:focus { outline: none; }
     transition: filter 0.3s;
     cursor: default;
 }
-.disk-hex:nth-child(even) { margin-top: 24px; }
+/* Row 2+ hexes pull up to nest into the row above (honeycomb) */
+.disk-hex:nth-child(n+3) { margin-top: -28px; position: relative; }
 .disk-hex:hover { filter: brightness(1.25); }
 /* backgrounds are set via inline gradient in JS */
 
@@ -415,11 +416,11 @@ select:focus, button:focus { outline: none; }
     white-space: nowrap;
 }
 .hex-mount-text.scrolling {
-    animation: hex-text-scroll 6s ease-in-out infinite alternate;
+    animation: hex-text-scroll 9s linear infinite;
 }
 @keyframes hex-text-scroll {
-    from { transform: translateX(0); }
-    to   { transform: translateX(calc(-100% + 70px)); }
+    0%, 15%   { transform: translateX(0); }       /* pause: show start of path */
+    85%, 100% { transform: translateX(-100%); }   /* scroll off left, hold, then loop */
 }
 .hex-pct {
     font-size: 1.2rem;

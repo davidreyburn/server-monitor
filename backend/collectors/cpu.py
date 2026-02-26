@@ -70,12 +70,21 @@ def _get_load_averages() -> dict:
     try:
         with open(f'{PROC_BASE}/loadavg', 'r') as f:
             parts = f.read().strip().split()
-            return {
-                'load_1min': float(parts[0]),
-                'load_5min': float(parts[1]),
-                'load_15min': float(parts[2]),
-                'running_processes': parts[3]
-            }
+
+        uptime_seconds = None
+        try:
+            with open(f'{PROC_BASE}/uptime', 'r') as f:
+                uptime_seconds = int(float(f.read().split()[0]))
+        except Exception:
+            pass
+
+        return {
+            'load_1min': float(parts[0]),
+            'load_5min': float(parts[1]),
+            'load_15min': float(parts[2]),
+            'running_processes': parts[3],
+            'uptime_seconds': uptime_seconds,
+        }
     except FileNotFoundError:
         logger.warning("/proc/loadavg not found")
         return {'error': 'loadavg not available'}

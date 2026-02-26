@@ -3,93 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Server Monitor</title>
+    <title>NERV // SYSTEM MONITOR</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-    <header>
-        <h1>Server Monitor</h1>
-        <div class="header-controls">
-            <span id="last-update">Last update: --</span>
-            <select id="time-range">
-                <option value="24">Last 24 Hours</option>
-                <option value="168">Last 7 Days</option>
-                <option value="720">Last 30 Days</option>
-            </select>
-            <button id="refresh-btn">Refresh</button>
-        </div>
-    </header>
 
-    <main>
-        <section class="metrics-grid">
-            <!-- CPU Section -->
-            <div class="card">
-                <h2>CPU Temperature</h2>
-                <div class="metric-value" id="cpu-temp">--</div>
-                <div class="metric-label">Current Temperature</div>
-                <canvas id="temp-chart"></canvas>
+<!-- Scanline overlay -->
+<div id="scanlines"></div>
+
+<div id="app-wrapper">
+
+    <!-- ═══════════════════════════════════════ TOP BAR ══ -->
+    <div id="top-bar" class="nge-panel boot-panel" data-boot-order="0">
+        <div class="panel-label">ネルフ // NERV CENTRAL COMMAND // 監視システム v1.0</div>
+        <div id="top-inner">
+            <div class="top-group">
+                <span class="dim-label">ホスト // HOST</span>
+                <span class="top-value" id="top-hostname">MAGI-SYS</span>
             </div>
+            <div class="top-group">
+                <span class="dim-label">稼働時間 // UPTIME</span>
+                <span class="top-value" id="top-uptime">--</span>
+            </div>
+            <div id="status-center">
+                <span id="system-status" class="status-nominal">■ SYSTEM STATUS: NOMINAL</span>
+                <span class="blink-cursor">_</span>
+            </div>
+            <div class="top-group">
+                <span class="dim-label">時刻 // TIME</span>
+                <span class="top-value" id="live-clock">--:--:--</span>
+            </div>
+            <div class="top-group top-controls">
+                <select id="time-range">
+                    <option value="24">24H</option>
+                    <option value="168">7D</option>
+                    <option value="720">30D</option>
+                </select>
+                <button id="refresh-btn">// SYNC</button>
+            </div>
+        </div>
+    </div>
 
-            <!-- Load Average -->
-            <div class="card">
-                <h2>System Load</h2>
-                <div class="load-values">
-                    <div class="load-item">
-                        <span class="load-value" id="load-1">--</span>
-                        <span class="load-label">1 min</span>
+    <!-- ═══════════════════════════════════════ MAIN ══════ -->
+    <div id="main-layout">
+
+        <!-- ─── LEFT COLUMN ─── -->
+        <div id="left-col">
+
+            <!-- CPU Panel -->
+            <div class="nge-panel boot-panel" id="cpu-panel" data-boot-order="1">
+                <div class="panel-label">SECTION-01 // CPU MONITOR // システム温度</div>
+                <div id="cpu-body">
+                    <div id="cpu-gauge-wrap">
+                        <canvas id="cpu-gauge-canvas"></canvas>
                     </div>
-                    <div class="load-item">
-                        <span class="load-value" id="load-5">--</span>
-                        <span class="load-label">5 min</span>
-                    </div>
-                    <div class="load-item">
-                        <span class="load-value" id="load-15">--</span>
-                        <span class="load-label">15 min</span>
+                    <div id="cpu-side">
+                        <div class="dim-label">温度 // TEMP</div>
+                        <div class="bracket-val" id="cpu-temp-val">--</div>
+                        <div class="dim-label" style="margin-top:10px">負荷 // LOAD</div>
+                        <div class="dim-text" id="load-readout">-- / -- / --</div>
                     </div>
                 </div>
-                <canvas id="load-chart"></canvas>
+                <canvas id="cpu-waveform"></canvas>
+                <div class="waveform-footer">
+                    <span class="dim-label">CPU TEMP HISTORY ────</span>
+                    <span class="dim-text" id="waveform-range">24H</span>
+                </div>
             </div>
 
-            <!-- Memory -->
-            <div class="card">
-                <h2>Memory Usage</h2>
-                <div class="metric-value" id="memory-percent">--</div>
-                <div class="metric-label" id="memory-detail">-- / -- GB</div>
-                <canvas id="memory-chart"></canvas>
+            <!-- RAM Panel -->
+            <div class="nge-panel boot-panel" id="ram-panel" data-boot-order="2">
+                <div class="panel-label">SECTION-02 // メモリ // MEMORY USAGE</div>
+                <div id="ram-header">
+                    <div class="bracket-val" id="ram-percent-val">--%</div>
+                    <div class="dim-label" id="ram-detail-val">-- / -- GB</div>
+                </div>
+                <div id="ram-bar-wrap"></div>
+                <div class="bar-scale">
+                    <span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span>
+                </div>
             </div>
 
-            <!-- Disk Usage -->
-            <div class="card wide">
-                <h2>Disk Usage</h2>
-                <div id="disk-list" class="disk-list"></div>
+            <!-- Storage Panel -->
+            <div class="nge-panel boot-panel" id="disk-panel" data-boot-order="3">
+                <div class="panel-label">SECTION-03 // ストレージ // STORAGE</div>
+                <div id="disk-hexes"></div>
             </div>
 
-            <!-- SMART Health -->
-            <div class="card wide">
-                <h2>Disk Health (SMART)</h2>
-                <div id="smart-list" class="smart-list"></div>
+        </div><!-- /left-col -->
+
+        <!-- ─── CENTER COLUMN ─── -->
+        <div id="center-col">
+            <div class="nge-panel boot-panel" id="docker-panel" data-boot-order="1">
+                <div class="panel-label">SECTION-04 // コンテナ // DOCKER CONTAINERS</div>
+                <div id="docker-list"></div>
             </div>
+        </div><!-- /center-col -->
 
-            <!-- All Connected Drives -->
-            <div class="card wide">
-                <h2>All Connected Drives</h2>
-                <div id="drives-list" class="drives-list"></div>
+        <!-- ─── RIGHT COLUMN ─── -->
+        <div id="right-col">
+            <div class="nge-panel boot-panel" id="process-panel" data-boot-order="2">
+                <div class="panel-label">SECTION-05 // プロセス // ACTIVE PROCESSES</div>
+                <div id="process-list"></div>
             </div>
+        </div><!-- /right-col -->
 
-            <!-- Docker Containers -->
-            <div class="card wide">
-                <h2>Docker Containers</h2>
-                <div id="docker-list" class="docker-list"></div>
+    </div><!-- /main-layout -->
+
+    <!-- ═══════════════════════════════════════ BOTTOM BAR ══ -->
+    <div id="bottom-bar" class="nge-panel boot-panel" data-boot-order="4">
+        <div id="magi-block">
+            <div class="magi-unit">
+                <span class="magi-name">MELCHIOR·1</span>
+                <span class="magi-status">OK</span>
             </div>
-        </section>
-    </main>
+            <div class="magi-unit">
+                <span class="magi-name">BALTHASAR·2</span>
+                <span class="magi-status">OK</span>
+            </div>
+            <div class="magi-unit">
+                <span class="magi-name">CASPER·3</span>
+                <span class="magi-status">OK</span>
+            </div>
+        </div>
+        <div id="hex-strip">
+            <div id="hex-scroll"></div>
+        </div>
+        <div id="bottom-right">
+            <span class="dim-label">最終更新 // LAST UPDATE</span>
+            <span id="last-update" class="dim-text">--</span>
+            <span class="dim-label" id="db-stats"></span>
+        </div>
+    </div>
 
-    <footer>
-        <span>Server Monitor v1.0</span>
-        <span id="db-stats"></span>
-    </footer>
+</div><!-- /app-wrapper -->
 
-    <script src="app.js"></script>
+<script src="app.js"></script>
 </body>
 </html>

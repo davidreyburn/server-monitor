@@ -8,7 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from config import Config
 from database import init_database, store_metrics, get_metrics, get_latest_metrics, cleanup_old_data, get_database_stats
-from collectors import collect_cpu_metrics, collect_memory_metrics, collect_disk_metrics, collect_smart_metrics, collect_drives_metrics, collect_docker_metrics
+from collectors import collect_cpu_metrics, collect_memory_metrics, collect_disk_metrics, collect_smart_metrics, collect_drives_metrics, collect_docker_metrics, collect_process_metrics
 
 # Configure logging
 logging.basicConfig(
@@ -60,6 +60,12 @@ def collect_all_metrics():
     except Exception as e:
         logger.error(f"Error collecting Docker metrics: {e}")
 
+    try:
+        process_data = collect_process_metrics()
+        store_metrics('processes', process_data)
+    except Exception as e:
+        logger.error(f"Error collecting process metrics: {e}")
+
     logger.debug("Metrics collection complete")
 
 
@@ -86,6 +92,7 @@ def get_current_metrics():
         'smart': collect_smart_metrics(),
         'drives': collect_drives_metrics(),
         'docker': collect_docker_metrics(),
+        'processes': collect_process_metrics(),
         'thresholds': Config.get_thresholds()
     })
 
@@ -95,7 +102,7 @@ def get_metric_history(metric_type):
     """Get historical metrics by type."""
     from flask import request
 
-    valid_types = ['cpu', 'memory', 'disk', 'smart', 'drives', 'docker']
+    valid_types = ['cpu', 'memory', 'disk', 'smart', 'drives', 'docker', 'processes']
     if metric_type not in valid_types:
         return jsonify({'error': f'Invalid metric type. Valid: {valid_types}'}), 400
 
@@ -113,7 +120,7 @@ def get_metric_history(metric_type):
 @app.route('/api/latest/<metric_type>')
 def get_latest(metric_type):
     """Get latest metric of a type."""
-    valid_types = ['cpu', 'memory', 'disk', 'smart', 'drives', 'docker']
+    valid_types = ['cpu', 'memory', 'disk', 'smart', 'drives', 'docker', 'processes']
     if metric_type not in valid_types:
         return jsonify({'error': f'Invalid metric type. Valid: {valid_types}'}), 400
 

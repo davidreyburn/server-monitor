@@ -6,6 +6,7 @@ from .disk import collect_disk_metrics
 from .smart import collect_smart_metrics
 from .drives import collect_drives_metrics
 from .docker_containers import collect_docker_metrics
+from .processes import collect_process_metrics
 
 __all__ = [
     'collect_cpu_metrics',
@@ -13,5 +14,6 @@ __all__ = [
     'collect_disk_metrics',
     'collect_smart_metrics',
     'collect_drives_metrics',
-    'collect_docker_metrics'
+    'collect_docker_metrics',
+    'collect_process_metrics',
 ]

@@ -364,6 +364,12 @@ function renderDiskHexes(disks, smart) {
         }
     }
 
+    const fillColors = {
+        'hex-ok':       { dark: 'rgba(1,8,5,0.98)',  fill: 'rgba(0,70,35,0.97)' },
+        'hex-warn':     { dark: 'rgba(8,6,1,0.98)',  fill: 'rgba(75,52,0,0.97)' },
+        'hex-critical': { dark: 'rgba(8,1,1,0.98)',  fill: 'rgba(75,8,8,0.97)'  },
+    };
+
     container.innerHTML = Object.entries(disks).map(([mount, disk]) => {
         const pct      = disk.percent_used;
         const hexClass = pct >= 90 ? 'hex-critical' : pct >= 75 ? 'hex-warn' : 'hex-ok';
@@ -373,12 +379,13 @@ function renderDiskHexes(disks, smart) {
             health === false ? '<div class="hex-smart-fail">⚠ SMART</div>' :
             health === true  ? '<div class="hex-smart-ok">● OK</div>' : '';
 
-        // Shorten mount path for display
-        const mountLabel = mount.length > 10 ? mount.slice(-10) : mount;
+        const { dark, fill } = fillColors[hexClass];
+        const bgStyle = `linear-gradient(to top, ${fill} ${pct}%, ${dark} ${pct}%)`;
+        const scrollClass = mount.length > 10 ? ' scrolling' : '';
 
         return `
-        <div class="disk-hex ${hexClass}" title="${mount} — ${disk.device}">
-            <div class="hex-mount">${mountLabel}</div>
+        <div class="disk-hex ${hexClass}" style="background: ${bgStyle}" title="${mount} — ${disk.device}">
+            <div class="hex-mount"><span class="hex-mount-text${scrollClass}">${mount}</span></div>
             <div class="hex-pct">${pct}%</div>
             <div class="hex-gb">${disk.used_gb}/${disk.total_gb}G</div>
             <div class="hex-dev">${disk.device}</div>

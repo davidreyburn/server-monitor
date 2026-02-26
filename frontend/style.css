@@ -379,8 +379,9 @@ select:focus, button:focus { outline: none; }
 #disk-hexes {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     justify-content: center;
+    align-items: flex-start;
     padding: 6px 0 4px;
 }
 
@@ -397,18 +398,28 @@ select:focus, button:focus { outline: none; }
     transition: filter 0.3s;
     cursor: default;
 }
+.disk-hex:nth-child(even) { margin-top: 24px; }
 .disk-hex:hover { filter: brightness(1.25); }
-
-.disk-hex.hex-ok       { background: rgba(0, 60, 40, 0.92); }
-.disk-hex.hex-warn     { background: rgba(70, 50, 0, 0.92); }
-.disk-hex.hex-critical { background: rgba(70, 10, 10, 0.92); }
+/* backgrounds are set via inline gradient in JS */
 
 .hex-mount {
+    width: 100%;
+    overflow: hidden;
     font-size: 0.75rem;
     color: var(--cyan);
     font-weight: bold;
     line-height: 1.2;
-    word-break: break-all;
+}
+.hex-mount-text {
+    display: inline-block;
+    white-space: nowrap;
+}
+.hex-mount-text.scrolling {
+    animation: hex-text-scroll 6s ease-in-out infinite alternate;
+}
+@keyframes hex-text-scroll {
+    from { transform: translateX(0); }
+    to   { transform: translateX(calc(-100% + 70px)); }
 }
 .hex-pct {
     font-size: 1.2rem;

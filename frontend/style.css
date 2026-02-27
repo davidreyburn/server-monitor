@@ -770,3 +770,77 @@ select:focus, button:focus { outline: none; }
     text-align: right;
     min-width: 130px;
 }
+
+/* ─── MOBILE RESPONSIVE (<768px) ────────────────────── */
+@media (max-width: 767px) {
+    html, body {
+        overflow: auto;
+    }
+
+    #app-wrapper {
+        height: auto;
+        min-height: 100vh;
+        grid-template-rows: auto 1fr auto;
+        padding: 6px;
+        gap: 5px;
+    }
+
+    #top-bar {
+        height: auto;
+        flex-wrap: wrap;
+        padding: 6px 10px;
+        gap: 6px;
+    }
+
+    #top-inner {
+        flex-wrap: wrap;
+    }
+
+    #main-layout {
+        grid-template-columns: 1fr;
+        overflow: visible;
+        height: auto;
+    }
+
+    #left-col {
+        overflow: visible;
+    }
+
+    #center-col,
+    #right-col {
+        overflow: visible;
+        height: auto;
+    }
+
+    #docker-panel,
+    #process-panel {
+        flex: none;
+    }
+
+    .docker-bar {
+        height: auto;
+        min-height: 44px;
+        flex-wrap: wrap;
+        padding: 6px 14px;
+    }
+
+    .docker-stats-inline {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .disk-hex:nth-child(n+3) {
+        margin-top: 0;
+        position: static;
+    }
+
+    #bottom-bar {
+        height: auto;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    #hex-strip {
+        display: none;
+    }
+}

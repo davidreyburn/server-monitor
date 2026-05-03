@@ -8,7 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from config import Config
 from database import init_database, store_metrics, get_metrics, get_latest_metrics, cleanup_old_data, get_database_stats, check_and_store_alert, get_alerts
-from collectors import collect_cpu_metrics, collect_memory_metrics, collect_disk_metrics, collect_smart_metrics, collect_drives_metrics, collect_docker_metrics, collect_process_metrics, collect_network_metrics
+from collectors import collect_cpu_metrics, collect_memory_metrics, collect_disk_metrics, collect_smart_metrics, collect_drives_metrics, collect_docker_metrics, collect_process_metrics, collect_network_metrics, collect_services_metrics
 
 # Configure logging
 logging.basicConfig(
@@ -165,6 +165,7 @@ def get_current_metrics():
         'docker': collect_docker_metrics(),
         'processes': collect_process_metrics(),
         'network': collect_network_metrics(),
+        'services': collect_services_metrics(),
         'thresholds': Config.get_thresholds()
     })
 

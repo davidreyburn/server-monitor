@@ -8,6 +8,7 @@ from .drives import collect_drives_metrics
 from .docker_containers import collect_docker_metrics
 from .processes import collect_process_metrics
 from .network import collect_network_metrics
+from .services import collect_services_metrics
 
 __all__ = [
     'collect_cpu_metrics',
@@ -18,4 +19,5 @@ __all__ = [
     'collect_docker_metrics',
     'collect_process_metrics',
     'collect_network_metrics',
+    'collect_services_metrics',
 ]

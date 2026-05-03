@@ -72,6 +72,7 @@ async function loadData() {
         renderDockerBars(data.docker, data.memory);
         renderProcessList(data.processes, data.memory);
         updateNetworkStats(data.network);
+        renderServiceStatus(data.services);
         updateMagiStatus(data);
 
         const uptime = data.cpu?.load?.uptime_seconds;
@@ -569,6 +570,22 @@ function updateNetworkStats(net) {
     const fmt = v => v < 0.1 ? `${(v * 1024).toFixed(1)} KB/s` : `${v.toFixed(3)} MB/s`;
     document.getElementById('net-tx-val').textContent = fmt(total.tx_mb_per_sec);
     document.getElementById('net-rx-val').textContent = fmt(total.rx_mb_per_sec);
+}
+
+function renderServiceStatus(services) {
+    const el = document.getElementById('svc-list');
+    if (!el) return;
+    if (!services || services.error) {
+        el.innerHTML = '';
+        return;
+    }
+    el.innerHTML = Object.entries(services).map(([name, info]) => {
+        const ok = info.running;
+        return `<div class="svc-chip">
+            <span class="svc-dot ${ok ? 'svc-ok' : 'svc-down'}">■</span>
+            <span class="svc-name">${name}</span>
+        </div>`;
+    }).join('');
 }
 
 async function loadNetworkHistory() {

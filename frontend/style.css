@@ -612,6 +612,28 @@ select:focus, button:focus { outline: none; }
 .legend-green { color: var(--green); }
 .legend-cyan  { color: var(--cyan); }
 
+/* ─── SERVICE STATUS STRIP ───────────────────────────── */
+#svc-list {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+.svc-chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+.svc-dot { font-size: 0.65rem; }
+.svc-dot.svc-ok   { color: var(--green); text-shadow: 0 0 5px var(--green); }
+.svc-dot.svc-down { color: var(--red); }
+.svc-name { color: var(--dim); }
+
 /* ─── ALERT PANEL ────────────────────────────────────── */
 #alert-panel {
     flex: 0 0 170px;
